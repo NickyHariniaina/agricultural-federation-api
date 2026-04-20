@@ -30,6 +30,47 @@ paths:
 
 components:
   schemas:
+    CompteBancaire:
+      type: object
+      properties:
+        titulaire:
+          type: string
+        nom_banque:
+          type: string
+          enum:
+            - BRED
+            - MCB
+            - BMOI
+            - BOA
+            - BGFI
+            - AFG
+            - ACCESS BANQUE
+            - BAOBAB
+            - SIPEM
+        numero:
+          type: object
+          properties:
+            code_banque:
+              type: integer
+            code_guichet:
+              type: integer
+            numero_compte:
+              type: integer
+            cle_rib:
+              type: integer
+    MobileMoney:
+      type: object
+      properties:
+        titulaire:
+          type: string
+        numero:
+          type: string
+        service_mobile_money:
+          type: string
+          enum:
+            - ORANGE MONEY
+            - MVOLA
+            - AIRTEL MONEY
     Collectivite:
       type: object
       properties:
