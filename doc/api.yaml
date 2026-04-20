@@ -9,6 +9,10 @@ servers:
   - url: http://localhost:8080
     description: Local Development
 
+tags:
+  - name: Collectivites
+    description: Collectivités au sein de la fédération
+
 paths:
 
   /health:
@@ -28,8 +32,49 @@ paths:
                 example:
                   message: Hello world
 
+  /collectivites:
+    post:
+      tags:
+        - Collectivites
+      description: Create a new collectivite
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectiviteCreation'
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collectivite'
+        400:
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
 components:
   schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Error message
+    CollectiviteCreation:
+      allOf:
+        - $ref: '#/components/schemas/Collectivite'
+        - type: object
+          properties:
+            specialite_agricole:
+              type: string
+              description: Spécialité agricole
+            autorisation_federation:
+              type: boolean
+              description: Autorisation de la fédération
     Collectivite:
       type: object
       properties:
