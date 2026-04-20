@@ -9,8 +9,75 @@ servers:
   - url: http://localhost:8080
     description: Local Development
 
+tags:
+  - name: Assuidite
+
 paths:
 
+  /presence/{evenement}:
+    post:
+      tags:
+        - Assuidite
+      description: Creer la présence durant un evenement
+      parameters:
+        - in: path
+          name: evenement
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresenceEvenement'
+      responses:
+        200:
+          description: Présence durant un evenement
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PresenceEvenement'
+    get:
+      tags:
+        - Assuidite
+      description: Obtenir la présence durant un evenement
+      parameters:
+        - in: path
+          name: evenement
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Présence durant un evenement
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PresenceEvenement'
+
+  /presence/{id}:
+    get:
+      tags:
+        - Assuidite
+      summary: Obtenir la présence d'un membre
+      description: Obtenir la présence d'un membre
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Présence d'un membre
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssuiditeResponse'
   /health:
     get:
       summary: Health Check
@@ -30,6 +97,37 @@ paths:
 
 components:
   schemas:
+    PresenceEvenement:
+      type: object
+      properties:
+        nom_evenement:
+          type: string
+          description: Nom de l'événement
+        date_evenement:
+          type: string
+          format: date
+          description: Date de l'événement
+        membres_present:
+          type: array
+          items:
+            $ref: '#/components/schemas/Membre'
+        membres_absent:
+          type: array
+          items:
+            $ref: '#/components/schemas/Membre'
+    AssuiditeResponse:
+      type: object
+      properties:
+        member:
+          type: object
+          $ref: '#/components/schemas/Membre'
+        cotisation:
+          type: number
+          format: float
+        nombre_presence:
+          type: integer
+        nombre_absence:
+          type: integer
     CompteBancaire:
       type: object
       properties:
