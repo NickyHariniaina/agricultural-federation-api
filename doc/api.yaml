@@ -9,10 +9,15 @@ servers:
   - url: http://localhost:8080
     description: Local Development
 
+tags:
+  - name: Membres
+
 paths:
 
   /membres:
     get:
+      tags:
+        - Membres
       summary: Membres
       description: Returns all members
       responses:
@@ -25,6 +30,8 @@ paths:
                 items:
                   $ref: '#/components/schemas/Membre'
     post:
+      tags:
+        - Membres
       summary: Add a new member
       description: Adds a new member to the database
       requestBody:
@@ -70,6 +77,11 @@ components:
                 type: string
                 format: date
                 description: Date de naissance du membre
+              paiment:
+                oneOf:
+                  - $ref: '#/components/schemas/CompteBancaire'
+                  - $ref: '#/components/schemas/MobileMoney'
+
     CompteBancaire:
       type: object
       properties:
@@ -98,6 +110,9 @@ components:
               type: integer
             cle_rib:
               type: integer
+        montant:
+          type: number
+          format: float
     MobileMoney:
       type: object
       properties:
@@ -111,6 +126,9 @@ components:
             - ORANGE MONEY
             - MVOLA
             - AIRTEL MONEY
+        montant:
+          type: number
+          format: float
     Collectivite:
       type: object
       properties:
