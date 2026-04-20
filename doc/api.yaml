@@ -15,6 +15,23 @@ tags:
 paths:
 
   /membres:
+    delete:
+      tags:
+        - Membres
+      summary: Delete a member
+      description: Deletes a member from the database
+      responses:
+        204:
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Message
+                example:
+                  message: Membre deleted
     get:
       tags:
         - Membres
