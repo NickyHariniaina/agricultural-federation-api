@@ -11,6 +11,35 @@ servers:
 
 paths:
 
+  /membres:
+    get:
+      summary: Membres
+      description: Returns all members
+      responses:
+        200:
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Membre'
+    post:
+      summary: Add a new member
+      description: Adds a new member to the database
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MembreCreationRequest'
+      responses:
+        201:
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Membre'
   /health:
     get:
       summary: Health Check
@@ -30,6 +59,18 @@ paths:
 
 components:
   schemas:
+    MembreCreationRequest:
+      type: array
+      items:
+        allOf:
+          - $ref: '#/components/schemas/Membre'
+          - type: object
+            properties:
+              date_naissance:
+                type: string
+                format: date
+                description: Date de naissance du membre
+
     Collectivite:
       type: object
       properties:
