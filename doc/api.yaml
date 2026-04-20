@@ -23,5 +23,11 @@ paths:
               schema:
                 type: object
                 properties:
-                  status:
+                  message:
                     type: string
+                example:
+                  message: Hello world
+
+# components:
+#   schemas:
+#     Colectivity:
