@@ -9,6 +9,7 @@ info:
 servers:
   - url: https://api.federation-agricole.mg/v1
     description: Serveur de production
+
 tags:
   - name: Trésorerie
     description: "Section D — Comptes et situation financière"
@@ -19,9 +20,9 @@ tags:
 
 paths:
 
-# =============================================================================
-# D — TRÉSORERIE
-# =============================================================================
+  # =============================================================================
+  # D — TRÉSORERIE
+  # =============================================================================
 
   /collectivites/{collectiviteId}/comptes:
     parameters:
@@ -69,6 +70,15 @@ paths:
                     titulaire: "Collectivité Analamanga Nord"
                     banque: BOA
                     numero_compte: "00005000010000000000301"
+                - id_compte: 3
+                  type: mobile_money
+                  solde: 320000.00
+                  devise: MGA
+                  actif: true
+                  details_mobile_money:
+                    titulaire: "Jean Rakoto"
+                    service: Mvola
+                    telephone: "+261341234567"
         '404': { $ref: '#/components/responses/NotFound' }
 
     post:
@@ -114,6 +124,16 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Compte' }
+              example:
+                id_compte: 4
+                type: bancaire
+                solde: 0.00
+                devise: MGA
+                actif: true
+                details_bancaire:
+                  titulaire: "Collectivité Analamanga Nord"
+                  banque: BOA
+                  numero_compte: "00005000010000000000301"
         '400': { $ref: '#/components/responses/BadRequest' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409':
@@ -140,6 +160,16 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Compte' }
+              example:
+                id_compte: 2
+                type: bancaire
+                solde: 4800000.00
+                devise: MGA
+                actif: true
+                details_bancaire:
+                  titulaire: "Collectivité Analamanga Nord"
+                  banque: BOA
+                  numero_compte: "00005000010000000000301"
         '404': { $ref: '#/components/responses/NotFound' }
 
     put:
@@ -147,7 +177,6 @@ paths:
       summary: Mettre à jour les informations d'un compte
       operationId: updateCompteCollectivite
       description: |
-        Permet de modifier les informations du compte.
         - Le **solde** peut être mis à jour directement (par le trésorier)
         - On peut **désactiver** un compte sans le supprimer (conservation de l'historique)
         - Le **type** d'un compte ne peut pas être modifié après création
@@ -171,6 +200,16 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Compte' }
+              example:
+                id_compte: 2
+                type: bancaire
+                solde: 2350000.00
+                devise: MGA
+                actif: true
+                details_bancaire:
+                  titulaire: "Collectivité Analamanga Nord"
+                  banque: BOA
+                  numero_compte: "00005000010000000000301"
         '400': { $ref: '#/components/responses/BadRequest' }
         '404': { $ref: '#/components/responses/NotFound' }
 
@@ -179,9 +218,8 @@ paths:
       summary: Désactiver un compte (soft delete)
       operationId: deleteCompteCollectivite
       description: |
-        Ne supprime pas définitivement le compte, mais le marque comme inactif
-        afin de conserver l'historique des transactions passées.
-        La caisse ne peut pas être désactivée si elle contient un solde non nul.
+        Marque le compte comme inactif — conserve l'historique des transactions.
+        La caisse ne peut pas être désactivée si son solde est non nul.
       responses:
         '204':
           description: Compte désactivé avec succès
@@ -191,12 +229,13 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
-
-  # ── Comptes de la fédération ──
+              example:
+                code: SOLDE_NON_NUL
+                message: "Impossible de désactiver la caisse : solde actuel = 1250000.00 MGA"
 
   /federation/comptes:
     get:
-      tags: [Trésorerie, Fédération]
+      tags: [Trésorerie]
       summary: Lister les comptes de la fédération nationale
       operationId: listComptesFederation
       description: |
@@ -217,9 +256,24 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/Compte' }
+              example:
+                - id_compte: 10
+                  type: caisse
+                  solde: 5000000.00
+                  devise: MGA
+                  actif: true
+                - id_compte: 11
+                  type: bancaire
+                  solde: 12000000.00
+                  devise: MGA
+                  actif: true
+                  details_bancaire:
+                    titulaire: "Fédération Nationale Agricole"
+                    banque: BMOI
+                    numero_compte: "00003000020000000000202"
 
     post:
-      tags: [Trésorerie, Fédération]
+      tags: [Trésorerie]
       summary: Ajouter un compte à la fédération
       operationId: createCompteFederation
       description: Mêmes contraintes que pour une collectivité. 1 seule caisse autorisée.
@@ -228,55 +282,123 @@ paths:
         content:
           application/json:
             schema: { $ref: '#/components/schemas/CreateCompteRequest' }
+            examples:
+              creer_caisse:
+                summary: Créer la caisse fédération
+                value:
+                  type: caisse
+              creer_compte_bancaire:
+                summary: Créer un compte BMOI
+                value:
+                  type: bancaire
+                  details_bancaire:
+                    titulaire: "Fédération Nationale Agricole"
+                    banque: BMOI
+                    numero_compte: "00003000020000000000202"
+              creer_mobile_money:
+                summary: Créer un compte Orange Money
+                value:
+                  type: mobile_money
+                  details_mobile_money:
+                    titulaire: "Fédération Nationale Agricole"
+                    service: Orange_Money
+                    telephone: "+261320000001"
       responses:
         '201':
-          description: Compte créé
+          description: Compte créé, solde initial = 0
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Compte' }
+              example:
+                id_compte: 12
+                type: bancaire
+                solde: 0.00
+                devise: MGA
+                actif: true
+                details_bancaire:
+                  titulaire: "Fédération Nationale Agricole"
+                  banque: BMOI
+                  numero_compte: "00003000020000000000202"
         '400': { $ref: '#/components/responses/BadRequest' }
         '409':
           description: Une caisse existe déjà pour la fédération
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+              example:
+                code: CAISSE_DEJA_EXISTANTE
+                message: "La fédération possède déjà une caisse (id_compte: 10)"
 
   /federation/comptes/{compteId}:
     parameters:
       - $ref: '#/components/parameters/CompteId'
     get:
-      tags: [Trésorerie, Fédération]
+      tags: [Trésorerie]
       summary: Détail d'un compte de la fédération
       operationId: getCompteFederation
       responses:
         '200':
-          description: Compte avec solde
+          description: Compte avec solde actuel
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Compte' }
+              example:
+                id_compte: 11
+                type: bancaire
+                solde: 12000000.00
+                devise: MGA
+                actif: true
+                details_bancaire:
+                  titulaire: "Fédération Nationale Agricole"
+                  banque: BMOI
+                  numero_compte: "00003000020000000000202"
         '404': { $ref: '#/components/responses/NotFound' }
 
     put:
-      tags: [Trésorerie, Fédération]
+      tags: [Trésorerie]
       summary: Mettre à jour un compte de la fédération
       operationId: updateCompteFederation
+      description: |
+        - Le **solde** peut être mis à jour directement
+        - On peut **désactiver** un compte sans le supprimer
+        - Le **type** ne peut pas être modifié après création
       requestBody:
         required: true
         content:
           application/json:
             schema: { $ref: '#/components/schemas/UpdateCompteRequest' }
+            examples:
+              mise_a_jour_solde:
+                summary: Mise à jour du solde
+                value:
+                  solde: 15000000.00
+              desactiver_compte:
+                summary: Désactiver un compte
+                value:
+                  actif: false
       responses:
         '200':
           description: Compte mis à jour
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Compte' }
+              example:
+                id_compte: 11
+                type: bancaire
+                solde: 15000000.00
+                devise: MGA
+                actif: true
+                details_bancaire:
+                  titulaire: "Fédération Nationale Agricole"
+                  banque: BMOI
+                  numero_compte: "00003000020000000000202"
         '404': { $ref: '#/components/responses/NotFound' }
 
     delete:
-      tags: [Trésorerie, Fédération]
+      tags: [Trésorerie]
       summary: Désactiver un compte de la fédération
       operationId: deleteCompteFederation
+      description: Marque le compte comme inactif. La caisse ne peut pas être désactivée si son solde est non nul.
       responses:
         '204':
           description: Compte désactivé
@@ -286,12 +408,14 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+              example:
+                code: SOLDE_NON_NUL
+                message: "Impossible de désactiver la caisse : solde actuel = 5000000.00 MGA"
 
-# =============================================================================
-# E — ACTIVITÉS
-# =============================================================================
 
-  # ── Activités d'une collectivité ──
+  # =============================================================================
+  # E — ACTIVITÉS
+  # =============================================================================
 
   /collectivites/{collectiviteId}/activites:
     parameters:
@@ -302,17 +426,15 @@ paths:
       operationId: listActivitesCollectivite
       description: |
         Retourne les activités organisées par la collectivité.
-        Trois types existent pour une collectivité :
         - `assemblee_generale` : mensuelle, obligatoire pour tous
         - `formation_junior` : mensuelle, obligatoire pour les juniors uniquement
-        - `exceptionnelle` : à la demande, les cibles et l'obligation sont définies librement
+        - `exceptionnelle` : à la demande, cibles définies librement
       parameters:
         - name: type
           in: query
           schema:
             type: string
             enum: [assemblee_generale, formation_junior, exceptionnelle]
-          description: Filtrer par type d'activité
         - name: statut
           in: query
           schema:
@@ -321,11 +443,9 @@ paths:
         - name: date_debut
           in: query
           schema: { type: string, format: date }
-          description: Activités à partir de cette date
         - name: date_fin
           in: query
           schema: { type: string, format: date }
-          description: Activités jusqu'à cette date
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/Limit'
       responses:
@@ -342,6 +462,39 @@ paths:
                   total: { type: integer }
                   page: { type: integer }
                   limit: { type: integer }
+              example:
+                data:
+                  - id_activite: 101
+                    type: assemblee_generale
+                    titre: "Assemblée Générale — Mai 2026"
+                    description: null
+                    date_activite: "2026-05-11T09:00:00"
+                    organisateur_type: collectivite
+                    organisateur_id: 5
+                    recurrence_regle: "2e dimanche du mois"
+                    statut: tenue
+                    cibles:
+                      - id_cible: 1
+                        cible_type: tous
+                        cible_id: null
+                        est_obligatoire: true
+                  - id_activite: 107
+                    type: formation_junior
+                    titre: "Formation juniors — Mai 2026"
+                    description: null
+                    date_activite: "2026-05-25T08:00:00"
+                    organisateur_type: collectivite
+                    organisateur_id: 5
+                    recurrence_regle: "4e samedi du mois"
+                    statut: planifiée
+                    cibles:
+                      - id_cible: 2
+                        cible_type: poste
+                        cible_id: 6
+                        est_obligatoire: true
+                total: 2
+                page: 1
+                limit: 20
         '404': { $ref: '#/components/responses/NotFound' }
 
     post:
@@ -349,15 +502,10 @@ paths:
       summary: Planifier une activité
       operationId: createActiviteCollectivite
       description: |
-        Crée une nouvelle activité pour la collectivité.
-
-        **Règles par type :**
-        - `assemblee_generale` : cibles automatiquement = tous les membres, obligatoire = true
-        - `formation_junior` : cibles automatiquement = membres juniors uniquement, obligatoire = true
-        - `exceptionnelle` : le champ `cibles` est obligatoire et défini manuellement
-
-        Le champ `recurrence_regle` permet de noter la règle de récurrence (ex: "2e dimanche du mois").
-        Il est informatif — la création des occurrences reste manuelle.
+        - `assemblee_generale` : cibles auto = tous les membres, obligatoire = true
+        - `formation_junior` : cibles auto = membres juniors uniquement, obligatoire = true
+        - `exceptionnelle` : `cibles` obligatoire et défini manuellement
+        - `recurrence_regle` : informatif — la création des occurrences reste manuelle
       requestBody:
         required: true
         content:
@@ -379,7 +527,7 @@ paths:
                   date_activite: "2026-05-25T08:00:00"
                   recurrence_regle: "4e samedi du mois"
               exceptionnelle:
-                summary: Activité exceptionnelle pour un poste spécifique
+                summary: Activité exceptionnelle ciblée
                 value:
                   type: exceptionnelle
                   titre: "Atelier gestion financière pour trésoriers"
@@ -395,6 +543,21 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Activite' }
+              example:
+                id_activite: 115
+                type: assemblee_generale
+                titre: "Assemblée Générale — Mai 2026"
+                description: null
+                date_activite: "2026-05-11T09:00:00"
+                organisateur_type: collectivite
+                organisateur_id: 5
+                recurrence_regle: "2e dimanche du mois"
+                statut: planifiée
+                cibles:
+                  - id_cible: 10
+                    cible_type: tous
+                    cible_id: null
+                    est_obligatoire: true
         '400': { $ref: '#/components/responses/BadRequest' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
@@ -413,6 +576,28 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ActiviteDetail' }
+              example:
+                id_activite: 101
+                type: assemblee_generale
+                titre: "Assemblée Générale — Mai 2026"
+                description: null
+                date_activite: "2026-05-11T09:00:00"
+                organisateur_type: collectivite
+                organisateur_id: 5
+                recurrence_regle: "2e dimanche du mois"
+                statut: tenue
+                cibles:
+                  - id_cible: 1
+                    cible_type: tous
+                    cible_id: null
+                    est_obligatoire: true
+                resume_presences:
+                  total_attendus: 38
+                  presents: 34
+                  absents: 3
+                  excuses: 1
+                  visiteurs: 2
+                  taux_assiduite: 0.89
         '404': { $ref: '#/components/responses/NotFound' }
 
     put:
@@ -436,33 +621,60 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Activite' }
+              example:
+                id_activite: 101
+                type: assemblee_generale
+                titre: "AG — Mai 2026 (reportée)"
+                description: null
+                date_activite: "2026-05-18T09:00:00"
+                organisateur_type: collectivite
+                organisateur_id: 5
+                recurrence_regle: "2e dimanche du mois"
+                statut: planifiée
+                cibles:
+                  - id_cible: 1
+                    cible_type: tous
+                    cible_id: null
+                    est_obligatoire: true
         '404': { $ref: '#/components/responses/NotFound' }
         '422':
           description: Modification impossible — activité déjà tenue ou annulée
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+              example:
+                code: ACTIVITE_NON_MODIFIABLE
+                message: "L'activité id=101 est déjà tenue et ne peut plus être modifiée"
 
     delete:
       tags: [Activités]
       summary: Annuler une activité
       operationId: annulerActiviteCollectivite
       description: |
-        Passe le statut de l'activité à `annulée`.
-        Ne supprime pas la ressource (conservation de l'historique).
-        Impossible d'annuler une activité déjà `tenue`.
+        Passe le statut à `annulée` — ne supprime pas la ressource.
+        Impossible sur une activité déjà `tenue`.
       responses:
         '200':
           description: Activité annulée
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Activite' }
+              example:
+                id_activite: 115
+                type: assemblee_generale
+                titre: "Assemblée Générale — Mai 2026"
+                statut: annulée
+                organisateur_type: collectivite
+                organisateur_id: 5
         '404': { $ref: '#/components/responses/NotFound' }
         '422':
           description: Activité déjà tenue, annulation impossible
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+              example:
+                code: ACTIVITE_DEJA_TENUE
+                message: "Impossible d'annuler une activité déjà tenue (id=101)"
 
   /collectivites/{collectiviteId}/activites/{activiteId}/statut:
     parameters:
@@ -470,11 +682,11 @@ paths:
       - $ref: '#/components/parameters/ActiviteId'
     patch:
       tags: [Activités]
-      summary: Marquer une activité comme tenue
-      operationId: marquerActiviteTenue
+      summary: Marquer une activité comme tenue ou annulée
+      operationId: marquerActiviteStatut
       description: |
-        Une fois l'activité terminée, le secrétaire la marque comme `tenue`.
-        Cela déclenche la possibilité d'enregistrer les présences (section F).
+        Le secrétaire met à jour le statut après l'activité.
+        Passer à `tenue` débloque l'enregistrement des présences (section F).
       requestBody:
         required: true
         content:
@@ -486,24 +698,43 @@ paths:
                 statut:
                   type: string
                   enum: [tenue, annulée]
+            examples:
+              marquer_tenue:
+                summary: Marquer comme tenue
+                value:
+                  statut: tenue
+              marquer_annulee:
+                summary: Marquer comme annulée
+                value:
+                  statut: annulée
       responses:
         '200':
           description: Statut mis à jour
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Activite' }
+              example:
+                id_activite: 101
+                type: assemblee_generale
+                titre: "Assemblée Générale — Mai 2026"
+                date_activite: "2026-05-11T09:00:00"
+                organisateur_type: collectivite
+                organisateur_id: 5
+                statut: tenue
+                cibles:
+                  - id_cible: 1
+                    cible_type: tous
+                    cible_id: null
+                    est_obligatoire: true
         '404': { $ref: '#/components/responses/NotFound' }
-
-  # ── Activités de la fédération ──
 
   /federation/activites:
     get:
-      tags: [Activités, Fédération]
+      tags: [Activités]
       summary: Lister les activités nationales de la fédération
       operationId: listActivitesFederation
       description: |
-        Activités planifiées par la fédération, auxquelles les collectivités sont invitées.
-        Ex : assemblée générale annuelle nationale, formations inter-collectivités.
+        Activités planifiées par la fédération auxquelles les collectivités sont invitées.
       parameters:
         - name: statut
           in: query
@@ -522,17 +753,48 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/Activite' }
+              example:
+                - id_activite: 200
+                  type: federation
+                  titre: "Assemblée Générale Annuelle 2026"
+                  description: "Rapport global de l'évolution du secteur agricole"
+                  date_activite: "2026-11-15T08:00:00"
+                  organisateur_type: federation
+                  organisateur_id: 1
+                  recurrence_regle: null
+                  statut: planifiée
+                  cibles:
+                    - id_cible: 50
+                      cible_type: collectivite
+                      cible_id: null
+                      est_obligatoire: true
+                - id_activite: 201
+                  type: federation
+                  titre: "Formation export — Normes européennes"
+                  description: null
+                  date_activite: "2026-07-20T09:00:00"
+                  organisateur_type: federation
+                  organisateur_id: 1
+                  recurrence_regle: null
+                  statut: planifiée
+                  cibles:
+                    - id_cible: 51
+                      cible_type: collectivite
+                      cible_id: 4
+                      est_obligatoire: false
+                    - id_cible: 52
+                      cible_type: collectivite
+                      cible_id: 7
+                      est_obligatoire: false
 
     post:
-      tags: [Activités, Fédération]
+      tags: [Activités]
       summary: Planifier une activité nationale
       operationId: createActiviteFederation
       description: |
         La fédération organise un événement auquel elle invite des collectivités.
-        Les cibles peuvent être :
         - `toutes_collectivites` : toutes les collectivités actives sont invitées
-        - `collectivites_specifiques` : une sélection de collectivités via leurs IDs
-        L'obligation de présence peut être définie collectivité par collectivité.
+        - `collectivites_specifiques` : sélection via leurs IDs
       requestBody:
         required: true
         content:
@@ -540,7 +802,7 @@ paths:
             schema: { $ref: '#/components/schemas/CreateActiviteFederationRequest' }
             examples:
               ag_annuelle:
-                summary: AG nationale annuelle obligatoire
+                summary: AG nationale obligatoire pour toutes les collectivités
                 value:
                   titre: "Assemblée Générale Annuelle 2026"
                   description: "Rapport global de l'évolution du secteur agricole"
@@ -563,68 +825,116 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Activite' }
+              example:
+                id_activite: 200
+                type: federation
+                titre: "Assemblée Générale Annuelle 2026"
+                description: "Rapport global de l'évolution du secteur agricole"
+                date_activite: "2026-11-15T08:00:00"
+                organisateur_type: federation
+                organisateur_id: 1
+                recurrence_regle: null
+                statut: planifiée
+                cibles:
+                  - id_cible: 50
+                    cible_type: collectivite
+                    cible_id: null
+                    est_obligatoire: true
         '400': { $ref: '#/components/responses/BadRequest' }
 
   /federation/activites/{activiteId}:
     parameters:
       - $ref: '#/components/parameters/ActiviteId'
     get:
-      tags: [Activités, Fédération]
+      tags: [Activités]
       summary: Détail d'une activité nationale
       operationId: getActiviteFederation
       responses:
         '200':
-          description: Activité nationale avec ses cibles
+          description: Activité nationale avec ses cibles et résumé des présences si tenue
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ActiviteDetail' }
+              example:
+                id_activite: 200
+                type: federation
+                titre: "Assemblée Générale Annuelle 2026"
+                description: "Rapport global de l'évolution du secteur agricole"
+                date_activite: "2026-11-15T08:00:00"
+                organisateur_type: federation
+                organisateur_id: 1
+                recurrence_regle: null
+                statut: planifiée
+                cibles:
+                  - id_cible: 50
+                    cible_type: collectivite
+                    cible_id: null
+                    est_obligatoire: true
+                resume_presences: null
         '404': { $ref: '#/components/responses/NotFound' }
 
     put:
-      tags: [Activités, Fédération]
+      tags: [Activités]
       summary: Modifier une activité nationale
       operationId: updateActiviteFederation
+      description: Seules les activités au statut `planifiée` peuvent être modifiées.
       requestBody:
         required: true
         content:
           application/json:
             schema: { $ref: '#/components/schemas/UpdateActiviteRequest' }
+            example:
+              titre: "AG Nationale 2026 (reportée)"
+              date_activite: "2026-11-22T08:00:00"
       responses:
         '200':
           description: Activité mise à jour
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Activite' }
+              example:
+                id_activite: 200
+                type: federation
+                titre: "AG Nationale 2026 (reportée)"
+                date_activite: "2026-11-22T08:00:00"
+                organisateur_type: federation
+                organisateur_id: 1
+                statut: planifiée
         '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: Modification impossible — activité déjà tenue ou annulée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                code: ACTIVITE_NON_MODIFIABLE
+                message: "L'activité id=200 est déjà tenue et ne peut plus être modifiée"
+
 
   # =============================================================================
   # G — STATISTIQUES
   # =============================================================================
-
-  # ── Rapport mensuel (président → fédération) ──
 
   /collectivites/{collectiviteId}/statistiques/rapport-mensuel:
     parameters:
       - $ref: '#/components/parameters/CollectiviteId'
     get:
       tags: [Statistiques]
-      summary: Rapport mensuel de la collectivité (pour la fédération)
+      summary: Rapport mensuel de la collectivité (président → fédération)
       operationId: getRapportMensuel
       description: |
-        Données que le **président** soumet chaque mois à la fédération.
-        Contient :
-        - Le **taux d'assiduité global** : ratio membres présents / membres obligés,
-          calculé sur toutes les activités obligatoires du mois
-        - Le **nombre de membres actifs** (non démissionnaires) à la fin du mois
+        Données soumises chaque mois à la fédération :
+        - **Taux d'assiduité global** : présents / membres obligés sur les activités obligatoires du mois
+        - **Nombre de membres actifs** à la fin du mois
 
-        Les membres visiteurs d'autres collectivités sont exclus du calcul.
+        Les visiteurs d'autres collectivités sont exclus du calcul.
       parameters:
         - name: mois
           in: query
           required: true
           schema: { type: integer, minimum: 1, maximum: 12 }
           example: 5
-          description: Mois du rapport (1 = janvier, 12 = décembre)
+          description: Mois du rapport (1 = janvier … 12 = décembre)
         - name: annee
           in: query
           required: true
@@ -643,7 +953,7 @@ paths:
                 annee: 2026
                 nombre_membres_actifs: 38
                 nombre_activites_obligatoires: 2
-                taux_assiduité_global: 0.87
+                taux_assiduite_global: 0.87
                 detail_activites:
                   - id_activite: 101
                     titre: "AG — Mai 2026"
@@ -664,26 +974,19 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '404': { $ref: '#/components/responses/NotFound' }
 
-  # ── Statistiques détaillées de tous les membres actifs ──
-
   /collectivites/{collectiviteId}/statistiques/membres:
     parameters:
       - $ref: '#/components/parameters/CollectiviteId'
     get:
       tags: [Statistiques]
-      summary: Statistiques détaillées de tous les membres actifs
+      summary: Statistiques de tous les membres actifs (usage interne président)
       operationId: getStatistiquesMembresTous
       description: |
-        Usage interne du **président** — tableau de bord complet des membres actifs.
-        Pour chaque membre actif (non démissionnaire) :
-        - Taux d'assiduité sur la période
-        - Montant total encaissé sur la période
-        - Montant impayé potentiel = cotisations attendues − cotisations reçues
-
-        **Calcul du montant impayé :**
-        Le montant attendu est calculé sur la base des cotisations périodiques
-        (mensuelle × nombre de mois dans la période, ou annuelle si applicable).
-        Les cotisations ponctuelles ne sont **pas** comptées comme impayées.
+        Pour chaque **membre actif** (non démissionnaire) sur la période :
+        - Taux d'assiduité
+        - Montant total encaissé
+        - Montant impayé potentiel = cotisations périodiques attendues − reçues
+          (les cotisations ponctuelles ne génèrent **pas** d'impayé)
       parameters:
         - name: date_debut
           in: query
@@ -700,7 +1003,6 @@ paths:
           schema:
             type: string
             enum: [taux_assiduite, montant_encaisse, montant_impaye, nom]
-          description: Champ de tri
         - name: ordre
           in: query
           schema: { type: string, enum: [asc, desc], default: desc }
@@ -708,7 +1010,7 @@ paths:
         - $ref: '#/components/parameters/Limit'
       responses:
         '200':
-          description: Statistiques de tous les membres actifs
+          description: Statistiques paginées de tous les membres actifs
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PaginatedStatistiquesMembres' }
@@ -734,8 +1036,6 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '404': { $ref: '#/components/responses/NotFound' }
 
-  # ── Statistiques d'un membre spécifique ──
-
   /collectivites/{collectiviteId}/membres/{membreId}/statistiques:
     parameters:
       - $ref: '#/components/parameters/CollectiviteId'
@@ -745,11 +1045,11 @@ paths:
       summary: Statistiques détaillées d'un membre spécifique
       operationId: getStatistiquesMembre
       description: |
-        Données détaillées pour un seul membre actif sur une période définie.
-        Inclut le détail activité par activité pour le taux d'assiduité,
-        et cotisation par cotisation pour les montants.
+        Détail complet pour un seul membre actif :
+        - Taux d'assiduité activité par activité
+        - Cotisations cotisation par cotisation
 
-        Réservé aux membres **actifs** — retourne 422 si le membre est démissionnaire.
+        Retourne **422** si le membre est démissionnaire.
       parameters:
         - name: date_debut
           in: query
@@ -811,20 +1111,18 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
-
-  # ── Vue d'ensemble fédération ──
+              example:
+                code: MEMBRE_DEMISSIONNAIRE
+                message: "Le membre id=34 a démissionné le 2025-12-01 — statistiques non disponibles"
 
   /federation/statistiques:
     get:
-      tags: [Statistiques, Fédération]
+      tags: [Statistiques]
       summary: Tableau de bord national de la fédération
       operationId: getStatistiquesFederation
       description: |
         Vue globale de toutes les collectivités actives.
-        Pour chaque collectivité : taux d'assiduité, nombre de membres actifs,
-        total des cotisations reçues sur la période.
-
-        Permet à la fédération d'identifier les collectivités en difficulté.
+        Permet d'identifier les collectivités en difficulté (faible assiduité, impayés).
       parameters:
         - name: mois
           in: query
@@ -856,7 +1154,6 @@ paths:
                     nombre_membres_actifs: 41
                     taux_assiduite_global: 0.72
                     total_cotisations_mois: 1020000.00
-
 
 
 # =============================================================================
@@ -938,31 +1235,30 @@ components:
               champ: { type: string }
               erreur: { type: string }
 
-
     # ─── Compte ───
     Compte:
       type: object
       properties:
         id_compte: { type: integer, readOnly: true }
-        type: { type: string, enum: [ caisse, bancaire, mobile_money ] }
+        type: { type: string, enum: [caisse, bancaire, mobile_money] }
         solde: { type: number, format: double, description: Solde en devise (MGA par défaut) }
         devise: { type: string, default: MGA }
         actif: { type: boolean }
         details_bancaire:
           nullable: true
-          allOf: [ { $ref: '#/components/schemas/CompteBancaireDetails' } ]
+          allOf: [{ $ref: '#/components/schemas/CompteBancaireDetails' }]
         details_mobile_money:
           nullable: true
-          allOf: [ { $ref: '#/components/schemas/CompteMobileMoneyDetails' } ]
+          allOf: [{ $ref: '#/components/schemas/CompteMobileMoneyDetails' }]
 
     CompteBancaireDetails:
       type: object
-      required: [ titulaire, banque, numero_compte ]
+      required: [titulaire, banque, numero_compte]
       properties:
         titulaire: { type: string }
         banque:
           type: string
-          enum: [ BRED, MCB, BMOI, BOA, BGFI, AFG, ACCÈS_BANQUE, BAOBAB, SIPEM ]
+          enum: [BRED, MCB, BMOI, BOA, BGFI, AFG, ACCÈS_BANQUE, BAOBAB, SIPEM]
         numero_compte:
           type: string
           pattern: '^\d{23}$'
@@ -971,12 +1267,12 @@ components:
 
     CompteMobileMoneyDetails:
       type: object
-      required: [ titulaire, service, telephone ]
+      required: [titulaire, service, telephone]
       properties:
         titulaire: { type: string }
         service:
           type: string
-          enum: [ Orange_Money, Mvola, Airtel_Money ]
+          enum: [Orange_Money, Mvola, Airtel_Money]
         telephone:
           type: string
           description: Numéro unique — clé d'unicité
@@ -984,19 +1280,17 @@ components:
 
     CreateCompteRequest:
       type: object
-      required: [ type ]
+      required: [type]
       properties:
-        type:
-          type: string
-          enum: [ caisse, bancaire, mobile_money ]
+        type: { type: string, enum: [caisse, bancaire, mobile_money] }
         details_bancaire:
           nullable: true
           description: Requis si type = bancaire
-          allOf: [ { $ref: '#/components/schemas/CompteBancaireDetails' } ]
+          allOf: [{ $ref: '#/components/schemas/CompteBancaireDetails' }]
         details_mobile_money:
           nullable: true
           description: Requis si type = mobile_money
-          allOf: [ { $ref: '#/components/schemas/CompteMobileMoneyDetails' } ]
+          allOf: [{ $ref: '#/components/schemas/CompteMobileMoneyDetails' }]
 
     UpdateCompteRequest:
       type: object
@@ -1010,24 +1304,24 @@ components:
           type: boolean
           description: false = désactivation du compte
 
-    # ─── Activité  ───
+    # ─── Activité ───
     Activite:
       type: object
       properties:
         id_activite: { type: integer, readOnly: true }
         type:
           type: string
-          enum: [ assemblee_generale, formation_junior, exceptionnelle, federation ]
+          enum: [assemblee_generale, formation_junior, exceptionnelle, federation]
         titre: { type: string }
         description: { type: string, nullable: true }
         date_activite: { type: string, format: date-time }
-        organisateur_type: { type: string, enum: [ collectivite, federation ] }
+        organisateur_type: { type: string, enum: [collectivite, federation] }
         organisateur_id: { type: integer }
         recurrence_regle:
           type: string
           nullable: true
           description: Règle de récurrence informelle (ex "2e dimanche du mois")
-        statut: { type: string, enum: [ planifiée, tenue, annulée ] }
+        statut: { type: string, enum: [planifiée, tenue, annulée] }
         cibles:
           type: array
           items: { $ref: '#/components/schemas/CibleActivite' }
@@ -1040,8 +1334,7 @@ components:
             resume_presences:
               nullable: true
               description: Disponible uniquement si statut = tenue
-              allOf:
-                - $ref: '#/components/schemas/ResumePresences'
+              allOf: [{ $ref: '#/components/schemas/ResumePresences' }]
 
     CibleActivite:
       type: object
@@ -1049,7 +1342,7 @@ components:
         id_cible: { type: integer }
         cible_type:
           type: string
-          enum: [ tous, poste, collectivite ]
+          enum: [tous, poste, collectivite]
           description: |
             - `tous` : tous les membres de la collectivité organisatrice
             - `poste` : membres occupant un poste précis (ex : juniors)
@@ -1062,11 +1355,9 @@ components:
 
     CreateActiviteCollectiviteRequest:
       type: object
-      required: [ type, titre, date_activite ]
+      required: [type, titre, date_activite]
       properties:
-        type:
-          type: string
-          enum: [ assemblee_generale, formation_junior, exceptionnelle ]
+        type: { type: string, enum: [assemblee_generale, formation_junior, exceptionnelle] }
         titre: { type: string }
         description: { type: string, nullable: true }
         date_activite: { type: string, format: date-time }
@@ -1076,26 +1367,26 @@ components:
           description: Obligatoire uniquement si type = exceptionnelle
           items:
             type: object
-            required: [ cible_type, est_obligatoire ]
+            required: [cible_type, est_obligatoire]
             properties:
-              cible_type: { type: string, enum: [ tous, poste ] }
+              cible_type: { type: string, enum: [tous, poste] }
               cible_id: { type: integer, nullable: true }
               est_obligatoire: { type: boolean }
 
     CreateActiviteFederationRequest:
       type: object
-      required: [ titre, date_activite, invitation ]
+      required: [titre, date_activite, invitation]
       properties:
         titre: { type: string }
         description: { type: string, nullable: true }
         date_activite: { type: string, format: date-time }
         invitation:
           type: object
-          required: [ cible, est_obligatoire ]
+          required: [cible, est_obligatoire]
           properties:
             cible:
               type: string
-              enum: [ toutes_collectivites, collectivites_specifiques ]
+              enum: [toutes_collectivites, collectivites_specifiques]
             ids_collectivites:
               type: array
               items: { type: integer }
@@ -1111,7 +1402,6 @@ components:
         date_activite: { type: string, format: date-time }
         recurrence_regle: { type: string }
 
-
     # ─── Présence ───
     ResumePresences:
       type: object
@@ -1122,7 +1412,6 @@ components:
         excuses: { type: integer }
         visiteurs: { type: integer }
         taux_assiduite: { type: number, format: float, minimum: 0, maximum: 1 }
-
 
     # ─── Statistiques ───
     RapportMensuel:
@@ -1169,11 +1458,7 @@ components:
         assiduite:
           type: object
           properties:
-            taux:
-              type: number
-              format: float
-              minimum: 0
-              maximum: 1
+            taux: { type: number, format: float, minimum: 0, maximum: 1 }
             activites_obligatoires: { type: integer }
             presences: { type: integer }
             absences: { type: integer }
@@ -1186,7 +1471,7 @@ components:
                   id_activite: { type: integer }
                   titre: { type: string }
                   date_activite: { type: string, format: date }
-                  statut_presence: { type: string, enum: [ présent, absent, excusé ] }
+                  statut_presence: { type: string, enum: [présent, absent, excusé] }
         cotisations:
           type: object
           properties:
