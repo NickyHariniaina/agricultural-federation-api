@@ -1825,3 +1825,38 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Collectivite'
+
+    CotisationRequest:
+      type: object
+      properties:
+        proprietaire:
+          $ref: '#/components/schemas/Membre'
+        type_cotisation:
+          type: string
+          enum:
+            - mensuelles
+            - annuelles
+            - ponctuelle
+        montant:
+          type: number
+          format: float
+          description: Montant de la cotisation
+        date_encaissement:
+          type: string
+          format: date
+          description: Date de l'encaissement
+        mode_paiment:
+          oneOf:
+            - $ref: '#/components/schemas/CompteBancaire'
+            - $ref: '#/components/schemas/MobileMoney'
+            - $ref: '#/components/schemas/Espece'
+    Espece:
+      type: object
+      properties:
+        nom_personne:
+          type: string
+          description: Nom de la personne
+        montant:
+          type: number
+          format: float
+          description: Montant de la cotisation
