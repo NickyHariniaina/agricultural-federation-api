@@ -1356,6 +1356,22 @@ components:
 
   schemas:
 
+    MembreCreationRequest:
+      type: array
+      items:
+        allOf:
+          - $ref: '#/components/schemas/Membre'
+          - type: object
+            properties:
+              date_naissance:
+                type: string
+                format: date
+                description: Date de naissance du membre
+              paiment:
+                oneOf:
+                  - $ref: '#/components/schemas/CompteBancaire'
+                  - $ref: '#/components/schemas/MobileMoney'
+
     # ─── Erreurs ───
     Error:
       type: object
