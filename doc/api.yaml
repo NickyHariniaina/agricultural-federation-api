@@ -1,1 +1,171 @@
-# API documentation
+openapi: 3.1.0
+
+info:
+  title: Fédération de Collectivités Agricoles — API REST
+  version: 2.0.0
+  contact:
+    name: PROG3 — Haute École d'Informatique — AA 2025-2026
+
+servers:
+  - url: https://api.federation-agricole.mg/v1
+    description: Serveur de production
+tags:
+  - name: Trésorerie
+    description: "Section D — Comptes et situation financière"
+  - name: Activités
+    description: "Section E — Planification des activités"
+  - name: Statistiques
+    description: "Section G — Statistiques et rapports"
+
+paths:
+
+# =============================================================================
+# D — TRÉSORERIE
+# =============================================================================
+
+components:
+
+  parameters:
+    CollectiviteId:
+      name: collectiviteId
+      in: path
+      required: true
+      schema: { type: integer }
+      description: Identifiant de la collectivité
+    MembreId:
+      name: membreId
+      in: path
+      required: true
+      schema: { type: integer }
+      description: Identifiant du membre
+    ActiviteId:
+      name: activiteId
+      in: path
+      required: true
+      schema: { type: integer }
+      description: Identifiant de l'activité
+    CompteId:
+      name: compteId
+      in: path
+      required: true
+      schema: { type: integer }
+      description: Identifiant du compte
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, default: 1, minimum: 1 }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, default: 20, minimum: 1, maximum: 100 }
+
+  responses:
+    NotFound:
+      description: Ressource introuvable
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    BadRequest:
+      description: Données invalides ou manquantes
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ValidationError' }
+    UnprocessableEntity:
+      description: Conditions métier non remplies
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ValidationError' }
+
+  schemas:
+
+    # ─── Erreurs ───
+    Error:
+      type: object
+      properties:
+        code: { type: string, example: RESSOURCE_INTROUVABLE }
+        message: { type: string }
+
+    ValidationError:
+      type: object
+      properties:
+        code: { type: string, example: CONDITION_NON_REMPLIE }
+        message: { type: string }
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              champ: { type: string }
+              erreur: { type: string }
+
+
+    # ─── Compte ───
+    Compte:
+      type: object
+      properties:
+        id_compte: { type: integer, readOnly: true }
+        type: { type: string, enum: [ caisse, bancaire, mobile_money ] }
+        solde: { type: number, format: double, description: Solde en devise (MGA par défaut) }
+        devise: { type: string, default: MGA }
+        actif: { type: boolean }
+        details_bancaire:
+          nullable: true
+          allOf: [ { $ref: '#/components/schemas/CompteBancaireDetails' } ]
+        details_mobile_money:
+          nullable: true
+          allOf: [ { $ref: '#/components/schemas/CompteMobileMoneyDetails' } ]
+
+    CompteBancaireDetails:
+      type: object
+      required: [ titulaire, banque, numero_compte ]
+      properties:
+        titulaire: { type: string }
+        banque:
+          type: string
+          enum: [ BRED, MCB, BMOI, BOA, BGFI, AFG, ACCÈS_BANQUE, BAOBAB, SIPEM ]
+        numero_compte:
+          type: string
+          pattern: '^\d{23}$'
+          description: "23 chiffres : BBBBB GGGGG CCCCCCCCCCC KK"
+          example: "00001000010000000000101"
+
+    CompteMobileMoneyDetails:
+      type: object
+      required: [ titulaire, service, telephone ]
+      properties:
+        titulaire: { type: string }
+        service:
+          type: string
+          enum: [ Orange_Money, Mvola, Airtel_Money ]
+        telephone:
+          type: string
+          description: Numéro unique — clé d'unicité
+          example: "+261341234567"
+
+    CreateCompteRequest:
+      type: object
+      required: [ type ]
+      properties:
+        type:
+          type: string
+          enum: [ caisse, bancaire, mobile_money ]
+        details_bancaire:
+          nullable: true
+          description: Requis si type = bancaire
+          allOf: [ { $ref: '#/components/schemas/CompteBancaireDetails' } ]
+        details_mobile_money:
+          nullable: true
+          description: Requis si type = mobile_money
+          allOf: [ { $ref: '#/components/schemas/CompteMobileMoneyDetails' } ]
+
+    UpdateCompteRequest:
+      type: object
+      properties:
+        solde:
+          type: number
+          format: double
+          minimum: 0
+          description: Nouveau solde (mise à jour manuelle par le trésorier)
+        actif:
+          type: boolean
+          description: false = désactivation du compte
