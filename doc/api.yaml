@@ -16,44 +16,7 @@ tags:
   - name: Cotisations
 
 paths:
-
   /membres:
-    delete:
-      tags:
-        - Membres
-      summary: Delete a member
-      description: Deletes a member from the database
-      responses:
-        204:
-          description: Successful response
-
-paths:
-
-  /cotisations:
-    post:
-      tags:
-        - Cotisations
-      summary: Créer une cotisation
-      description: Créer une cotisation
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CotisationRequest'
-      responses:
-        201:
-          description: Cotisation créée
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    description: Message
-                example:
-                  message: Membre deleted
     get:
       tags:
         - Membres
@@ -100,6 +63,49 @@ paths:
                 example:
                   message: Cotisation non créée
 
+    delete:
+      tags:
+        - Membres
+      summary: Delete a member
+      description: Deletes a member from the database
+      responses:
+        204:
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Message
+                example:
+                  message: Membre deleted
+  /cotisations:
+    post:
+      tags:
+        - Cotisations
+      summary: Créer une cotisation
+      description: Créer une cotisation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CotisationRequest'
+      responses:
+        201:
+          description: Cotisation créée
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Message
+                example:
+                  message: Cositation créée
   /health:
     get:
       summary: Health Check
@@ -175,9 +181,6 @@ components:
                 oneOf:
                   - $ref: '#/components/schemas/CompteBancaire'
                   - $ref: '#/components/schemas/MobileMoney'
-
-components:
-  schemas:
     CotisationRequest:
       type: object
       properties:
