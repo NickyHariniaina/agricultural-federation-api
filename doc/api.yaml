@@ -434,3 +434,116 @@ components:
         actif:
           type: boolean
           description: false = désactivation du compte
+
+    # ─── Activité (section E) ───
+    Activite:
+      type: object
+      properties:
+        id_activite: { type: integer, readOnly: true }
+        type:
+          type: string
+          enum: [ assemblee_generale, formation_junior, exceptionnelle, federation ]
+        titre: { type: string }
+        description: { type: string, nullable: true }
+        date_activite: { type: string, format: date-time }
+        organisateur_type: { type: string, enum: [ collectivite, federation ] }
+        organisateur_id: { type: integer }
+        recurrence_regle:
+          type: string
+          nullable: true
+          description: Règle de récurrence informelle (ex "2e dimanche du mois")
+        statut: { type: string, enum: [ planifiée, tenue, annulée ] }
+        cibles:
+          type: array
+          items: { $ref: '#/components/schemas/CibleActivite' }
+
+    ActiviteDetail:
+      allOf:
+        - $ref: '#/components/schemas/Activite'
+        - type: object
+          properties:
+            resume_presences:
+              nullable: true
+              description: Disponible uniquement si statut = tenue
+              allOf:
+                - $ref: '#/components/schemas/ResumePresences'
+
+    CibleActivite:
+      type: object
+      properties:
+        id_cible: { type: integer }
+        cible_type:
+          type: string
+          enum: [ tous, poste, collectivite ]
+          description: |
+            - `tous` : tous les membres de la collectivité organisatrice
+            - `poste` : membres occupant un poste précis (ex : juniors)
+            - `collectivite` : une collectivité invitée (pour activités fédération)
+        cible_id:
+          type: integer
+          nullable: true
+          description: id_poste ou id_collectivite selon cible_type ; null si cible_type = tous
+        est_obligatoire: { type: boolean }
+
+    CreateActiviteCollectiviteRequest:
+      type: object
+      required: [ type, titre, date_activite ]
+      properties:
+        type:
+          type: string
+          enum: [ assemblee_generale, formation_junior, exceptionnelle ]
+        titre: { type: string }
+        description: { type: string, nullable: true }
+        date_activite: { type: string, format: date-time }
+        recurrence_regle: { type: string, nullable: true }
+        cibles:
+          type: array
+          description: Obligatoire uniquement si type = exceptionnelle
+          items:
+            type: object
+            required: [ cible_type, est_obligatoire ]
+            properties:
+              cible_type: { type: string, enum: [ tous, poste ] }
+              cible_id: { type: integer, nullable: true }
+              est_obligatoire: { type: boolean }
+
+    CreateActiviteFederationRequest:
+      type: object
+      required: [ titre, date_activite, invitation ]
+      properties:
+        titre: { type: string }
+        description: { type: string, nullable: true }
+        date_activite: { type: string, format: date-time }
+        invitation:
+          type: object
+          required: [ cible, est_obligatoire ]
+          properties:
+            cible:
+              type: string
+              enum: [ toutes_collectivites, collectivites_specifiques ]
+            ids_collectivites:
+              type: array
+              items: { type: integer }
+              description: Requis si cible = collectivites_specifiques
+            est_obligatoire: { type: boolean }
+
+    UpdateActiviteRequest:
+      type: object
+      description: Seules les activités au statut planifiée peuvent être modifiées
+      properties:
+        titre: { type: string }
+        description: { type: string }
+        date_activite: { type: string, format: date-time }
+        recurrence_regle: { type: string }
+
+
+    # ─── Présence ───
+    ResumePresences:
+      type: object
+      properties:
+        total_attendus: { type: integer }
+        presents: { type: integer }
+        absents: { type: integer }
+        excuses: { type: integer }
+        visiteurs: { type: integer }
+        taux_assiduite: { type: number, format: float, minimum: 0, maximum: 1 }
