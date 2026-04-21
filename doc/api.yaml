@@ -597,6 +597,268 @@ paths:
               schema: { $ref: '#/components/schemas/Activite' }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  # =============================================================================
+  # G — STATISTIQUES
+  # =============================================================================
+
+  # ── Rapport mensuel (président → fédération) ──
+
+  /collectivites/{collectiviteId}/statistiques/rapport-mensuel:
+    parameters:
+      - $ref: '#/components/parameters/CollectiviteId'
+    get:
+      tags: [Statistiques]
+      summary: Rapport mensuel de la collectivité (pour la fédération)
+      operationId: getRapportMensuel
+      description: |
+        Données que le **président** soumet chaque mois à la fédération.
+        Contient :
+        - Le **taux d'assiduité global** : ratio membres présents / membres obligés,
+          calculé sur toutes les activités obligatoires du mois
+        - Le **nombre de membres actifs** (non démissionnaires) à la fin du mois
+
+        Les membres visiteurs d'autres collectivités sont exclus du calcul.
+      parameters:
+        - name: mois
+          in: query
+          required: true
+          schema: { type: integer, minimum: 1, maximum: 12 }
+          example: 5
+          description: Mois du rapport (1 = janvier, 12 = décembre)
+        - name: annee
+          in: query
+          required: true
+          schema: { type: integer, minimum: 2020 }
+          example: 2026
+      responses:
+        '200':
+          description: Rapport mensuel global
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RapportMensuel' }
+              example:
+                collectivite_id: 5
+                collectivite_nom: "Collectivité Analamanga Nord"
+                mois: 5
+                annee: 2026
+                nombre_membres_actifs: 38
+                nombre_activites_obligatoires: 2
+                taux_assiduité_global: 0.87
+                detail_activites:
+                  - id_activite: 101
+                    titre: "AG — Mai 2026"
+                    type: assemblee_generale
+                    date_activite: "2026-05-11"
+                    presents: 34
+                    absents: 3
+                    excuses: 1
+                    taux_activite: 0.89
+                  - id_activite: 107
+                    titre: "Formation juniors — Mai 2026"
+                    type: formation_junior
+                    date_activite: "2026-05-25"
+                    presents: 12
+                    absents: 2
+                    excuses: 0
+                    taux_activite: 0.857
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ── Statistiques détaillées de tous les membres actifs ──
+
+  /collectivites/{collectiviteId}/statistiques/membres:
+    parameters:
+      - $ref: '#/components/parameters/CollectiviteId'
+    get:
+      tags: [Statistiques]
+      summary: Statistiques détaillées de tous les membres actifs
+      operationId: getStatistiquesMembresTous
+      description: |
+        Usage interne du **président** — tableau de bord complet des membres actifs.
+        Pour chaque membre actif (non démissionnaire) :
+        - Taux d'assiduité sur la période
+        - Montant total encaissé sur la période
+        - Montant impayé potentiel = cotisations attendues − cotisations reçues
+
+        **Calcul du montant impayé :**
+        Le montant attendu est calculé sur la base des cotisations périodiques
+        (mensuelle × nombre de mois dans la période, ou annuelle si applicable).
+        Les cotisations ponctuelles ne sont **pas** comptées comme impayées.
+      parameters:
+        - name: date_debut
+          in: query
+          required: true
+          schema: { type: string, format: date }
+          example: "2026-01-01"
+        - name: date_fin
+          in: query
+          required: true
+          schema: { type: string, format: date }
+          example: "2026-05-31"
+        - name: tri_par
+          in: query
+          schema:
+            type: string
+            enum: [taux_assiduite, montant_encaisse, montant_impaye, nom]
+          description: Champ de tri
+        - name: ordre
+          in: query
+          schema: { type: string, enum: [asc, desc], default: desc }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Statistiques de tous les membres actifs
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginatedStatistiquesMembres' }
+              example:
+                data:
+                  - id_membre: 12
+                    nom: "Rakoto"
+                    prenom: "Jean"
+                    poste_actuel: "trésorier"
+                    taux_assiduite: 0.95
+                    montant_encaisse: 120000.00
+                    montant_impaye: 0.00
+                  - id_membre: 34
+                    nom: "Rasoa"
+                    prenom: "Marie"
+                    poste_actuel: "membre_junior"
+                    taux_assiduite: 0.60
+                    montant_encaisse: 80000.00
+                    montant_impaye: 40000.00
+                total: 38
+                page: 1
+                limit: 20
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ── Statistiques d'un membre spécifique ──
+
+  /collectivites/{collectiviteId}/membres/{membreId}/statistiques:
+    parameters:
+      - $ref: '#/components/parameters/CollectiviteId'
+      - $ref: '#/components/parameters/MembreId'
+    get:
+      tags: [Statistiques]
+      summary: Statistiques détaillées d'un membre spécifique
+      operationId: getStatistiquesMembre
+      description: |
+        Données détaillées pour un seul membre actif sur une période définie.
+        Inclut le détail activité par activité pour le taux d'assiduité,
+        et cotisation par cotisation pour les montants.
+
+        Réservé aux membres **actifs** — retourne 422 si le membre est démissionnaire.
+      parameters:
+        - name: date_debut
+          in: query
+          required: true
+          schema: { type: string, format: date }
+          example: "2026-01-01"
+        - name: date_fin
+          in: query
+          required: true
+          schema: { type: string, format: date }
+          example: "2026-05-31"
+      responses:
+        '200':
+          description: Statistiques complètes du membre
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StatistiquesMembre' }
+              example:
+                id_membre: 34
+                nom: "Rasoa"
+                prenom: "Marie"
+                poste_actuel: "membre_junior"
+                periode:
+                  date_debut: "2026-01-01"
+                  date_fin: "2026-05-31"
+                assiduite:
+                  taux: 0.60
+                  activites_obligatoires: 10
+                  presences: 6
+                  absences: 3
+                  excuses: 1
+                  detail_activites:
+                    - id_activite: 89
+                      titre: "AG — Janvier 2026"
+                      date_activite: "2026-01-12"
+                      statut_presence: présent
+                    - id_activite: 93
+                      titre: "AG — Février 2026"
+                      date_activite: "2026-02-09"
+                      statut_presence: absent
+                cotisations:
+                  montant_total_encaisse: 80000.00
+                  montant_attendu: 120000.00
+                  montant_impaye: 40000.00
+                  detail:
+                    - id_cotisation: 201
+                      type: mensuelle
+                      montant: 20000.00
+                      date_encaissement: "2026-01-15"
+                      mode_paiement: mobile_money
+                    - id_cotisation: 215
+                      type: mensuelle
+                      montant: 20000.00
+                      date_encaissement: "2026-02-18"
+                      mode_paiement: espece
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: Statistiques non disponibles pour un membre démissionnaire
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  # ── Vue d'ensemble fédération ──
+
+  /federation/statistiques:
+    get:
+      tags: [Statistiques, Fédération]
+      summary: Tableau de bord national de la fédération
+      operationId: getStatistiquesFederation
+      description: |
+        Vue globale de toutes les collectivités actives.
+        Pour chaque collectivité : taux d'assiduité, nombre de membres actifs,
+        total des cotisations reçues sur la période.
+
+        Permet à la fédération d'identifier les collectivités en difficulté.
+      parameters:
+        - name: mois
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 12 }
+        - name: annee
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Tableau de bord fédération
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StatistiquesFederation' }
+              example:
+                annee: 2026
+                mois: 5
+                nombre_collectivites_actives: 11
+                nombre_membres_total: 423
+                collectivites:
+                  - id_collectivite: 1
+                    nom: "Collectivité Analamanga Nord"
+                    ville: "Antananarivo"
+                    nombre_membres_actifs: 38
+                    taux_assiduite_global: 0.87
+                    total_cotisations_mois: 950000.00
+                  - id_collectivite: 3
+                    nom: "Collectivité Fianarantsoa Sud"
+                    ville: "Fianarantsoa"
+                    nombre_membres_actifs: 41
+                    taux_assiduite_global: 0.72
+                    total_cotisations_mois: 1020000.00
+
+
+
 # =============================================================================
 # COMPONENTS
 # =============================================================================
