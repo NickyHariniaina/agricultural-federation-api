@@ -1367,6 +1367,50 @@ components:
 
   schemas:
 
+    CollectiviteCreation:
+      allOf:
+        - $ref: '#/components/schemas/Collectivite'
+        - type: object
+          properties:
+            specialite_agricole:
+              type: string
+              description: Spécialité agricole
+            autorisation_federation:
+              type: boolean
+              description: Autorisation de la fédération
+    MembreCreationRequest:
+      type: array
+      items:
+        allOf:
+          - $ref: '#/components/schemas/Membre'
+          - type: object
+            properties:
+              date_naissance:
+                type: string
+                format: date
+                description: Date de naissance du membre
+              paiment_adhesion:
+                oneOf:
+                  - $ref: '#/components/schemas/CompteBancaire'
+                  - $ref: '#/components/schemas/MobileMoney'
+              paiment_cotisation_annuelle:
+                oneOf:
+                  - $ref: '#/components/schemas/CompteBancaire'
+                  - $ref: '#/components/schemas/MobileMoney'
+              parrains:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/Membre'
+                    - type: object
+                      properties:
+                        numero_collectivite:
+                          type: integer
+                          description: Numéro de la collectivité du parrain
+                        relation:
+                          type: string
+                          enum: [famille, ami, collegue, autre]
+
     # ─── Erreurs ───
     Error:
       type: object
@@ -1710,3 +1754,170 @@ components:
               nombre_nouveaux_adherents:
                 type: integer
                 description: Membres ayant rejoint cette collectivité sur la période
+    CompteBancaire:
+      type: object
+      properties:
+        titulaire:
+          type: string
+        nom_banque:
+          type: string
+          enum:
+            - BRED
+            - MCB
+            - BMOI
+            - BOA
+            - BGFI
+            - AFG
+            - ACCESS BANQUE
+            - BAOBAB
+            - SIPEM
+        numero:
+          type: object
+          properties:
+            code_banque:
+              type: integer
+            code_guichet:
+              type: integer
+            numero_compte:
+              type: integer
+            cle_rib:
+              type: integer
+        montant:
+          type: number
+          format: float
+    MobileMoney:
+      type: object
+      properties:
+        titulaire:
+          type: string
+        numero:
+          type: string
+        service_mobile_money:
+          type: string
+          enum:
+            - ORANGE MONEY
+            - MVOLA
+            - AIRTEL MONEY
+        montant:
+          type: number
+          format: float
+    Collectivite:
+      type: object
+      properties:
+        nom:
+          type: string
+          description: Nom de la collectivité
+        numero:
+          type: string
+          description: Numéro de la collectivité
+        specialite_agricole:
+          type: string
+          description: Spécialité agricole
+        date_creation:
+          type: string
+          format: date
+          description: Date de création de la collectivité
+        ville:
+          type: string
+          description: Ville de la collectivité
+        membres:
+          type: array
+          items:
+            $ref: '#/components/schemas/Membre'
+        president:
+          $ref: '#/components/schemas/Membre'
+        president_adjoint:
+          $ref: '#/components/schemas/Membre'
+        tresorier:
+          $ref: '#/components/schemas/Membre'
+        secretaire:
+          $ref: '#/components/schemas/Membre'
+    Membre:
+      type: object
+      properties:
+        nom:
+          type: string
+          description: Nom du membre
+        prenom:
+          type: string
+          description: Prénom du membre
+        genre:
+          type: string
+          description: Genre du membre
+        adresse:
+          type: string
+          description: Adresse du membre
+        metier:
+          type: string
+          description: Métier du membre
+        telephone:
+          type: string
+          description: Téléphone du membre
+        email:
+          type: string
+          description: Email du membre
+        date_adhesion:
+          type: string
+          format: date
+          description: Date d'adhésion du membre
+        poste_specifique:
+          type: string
+          description: Poste spécifique du membre
+          enum:
+            - President
+            - President Adjoint
+            - Tresorier
+            - Secretaire
+            - Membre confirme
+            - Membre junior
+    Federation:
+      type: object
+      properties:
+        president:
+          $ref: '#/components/schemas/Membre'
+        president_adjoint:
+          $ref: '#/components/schemas/Membre'
+        tresorier:
+          $ref: '#/components/schemas/Membre'
+        secretaire:
+          $ref: '#/components/schemas/Membre'
+        collectivites:
+          type: array
+          items:
+            $ref: '#/components/schemas/Collectivite'
+
+    CotisationRequest:
+      type: object
+      properties:
+        proprietaire:
+          $ref: '#/components/schemas/Membre'
+        type_cotisation:
+          type: string
+          enum:
+            - mensuelles
+            - annuelles
+            - ponctuelle
+        montant:
+          type: number
+          format: float
+          description: Montant de la cotisation
+        date_encaissement:
+          type: string
+          format: date
+          description: Date de l'encaissement
+        mode_paiment:
+          oneOf:
+            - $ref: '#/components/schemas/CompteBancaire'
+            - $ref: '#/components/schemas/MobileMoney'
+            - $ref: '#/components/schemas/Espece'
+    Espece:
+      type: object
+      properties:
+        nom_personne:
+          type: string
+          description: Nom de la personne
+        montant:
+          type: number
+          format: float
+          description: Montant de la cotisation
+
