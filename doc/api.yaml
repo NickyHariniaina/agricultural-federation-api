@@ -23,6 +23,271 @@ paths:
 # D — TRÉSORERIE
 # =============================================================================
 
+  /collectivites/{collectiviteId}/comptes:
+    parameters:
+      - $ref: '#/components/parameters/CollectiviteId'
+    get:
+      tags: [Trésorerie]
+      summary: Lister tous les comptes d'une collectivité
+      operationId: listComptesCollectivite
+      description: |
+        Retourne l'ensemble des comptes de la collectivité :
+        - La caisse (1 seule possible)
+        - Les comptes bancaires (N possibles)
+        - Les comptes mobile money (N possibles)
+
+        Chaque compte indique son solde actuel en MGA.
+      parameters:
+        - name: type
+          in: query
+          schema: { type: string, enum: [caisse, bancaire, mobile_money] }
+          description: Filtrer par type de compte
+        - name: actif
+          in: query
+          schema: { type: boolean }
+          description: Filtrer les comptes actifs ou inactifs
+      responses:
+        '200':
+          description: Liste des comptes avec leurs soldes
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Compte' }
+              example:
+                - id_compte: 1
+                  type: caisse
+                  solde: 1250000.00
+                  devise: MGA
+                  actif: true
+                - id_compte: 2
+                  type: bancaire
+                  solde: 4800000.00
+                  devise: MGA
+                  actif: true
+                  details_bancaire:
+                    titulaire: "Collectivité Analamanga Nord"
+                    banque: BOA
+                    numero_compte: "00005000010000000000301"
+        '404': { $ref: '#/components/responses/NotFound' }
+
+    post:
+      tags: [Trésorerie]
+      summary: Ajouter un compte à la collectivité
+      operationId: createCompteCollectivite
+      description: |
+        Crée un nouveau compte pour la collectivité.
+
+        **Contraintes métier :**
+        - `type: caisse` → **1 seule caisse autorisée** par collectivité (HTTP 409 si une existe déjà)
+        - `type: bancaire` → `details_bancaire` obligatoire (titulaire, banque, numéro RIB 23 chiffres)
+        - `type: mobile_money` → `details_mobile_money` obligatoire (titulaire, service, téléphone unique)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateCompteRequest' }
+            examples:
+              creer_caisse:
+                summary: Créer une caisse
+                value:
+                  type: caisse
+              creer_compte_bancaire:
+                summary: Créer un compte BOA
+                value:
+                  type: bancaire
+                  details_bancaire:
+                    titulaire: "Collectivité Analamanga Nord"
+                    banque: BOA
+                    numero_compte: "00005000010000000000301"
+              creer_mobile_money:
+                summary: Créer un compte Mvola
+                value:
+                  type: mobile_money
+                  details_mobile_money:
+                    titulaire: "Jean Rakoto"
+                    service: Mvola
+                    telephone: "+261341234567"
+      responses:
+        '201':
+          description: Compte créé avec succès, solde initial = 0
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Compte' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Une caisse existe déjà pour cette collectivité
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                code: CAISSE_DEJA_EXISTANTE
+                message: "Cette collectivité possède déjà une caisse (id_compte: 3)"
+
+  /collectivites/{collectiviteId}/comptes/{compteId}:
+    parameters:
+      - $ref: '#/components/parameters/CollectiviteId'
+      - $ref: '#/components/parameters/CompteId'
+    get:
+      tags: [Trésorerie]
+      summary: Détail d'un compte avec solde
+      operationId: getCompteCollectivite
+      description: Retourne toutes les informations du compte, y compris les détails bancaires ou mobile money selon le type.
+      responses:
+        '200':
+          description: Compte avec solde actuel
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Compte' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+    put:
+      tags: [Trésorerie]
+      summary: Mettre à jour les informations d'un compte
+      operationId: updateCompteCollectivite
+      description: |
+        Permet de modifier les informations du compte.
+        - Le **solde** peut être mis à jour directement (par le trésorier)
+        - On peut **désactiver** un compte sans le supprimer (conservation de l'historique)
+        - Le **type** d'un compte ne peut pas être modifié après création
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateCompteRequest' }
+            examples:
+              mise_a_jour_solde:
+                summary: Mise à jour du solde
+                value:
+                  solde: 2350000.00
+              desactiver_compte:
+                summary: Désactiver un compte
+                value:
+                  actif: false
+      responses:
+        '200':
+          description: Compte mis à jour
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Compte' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+    delete:
+      tags: [Trésorerie]
+      summary: Désactiver un compte (soft delete)
+      operationId: deleteCompteCollectivite
+      description: |
+        Ne supprime pas définitivement le compte, mais le marque comme inactif
+        afin de conserver l'historique des transactions passées.
+        La caisse ne peut pas être désactivée si elle contient un solde non nul.
+      responses:
+        '204':
+          description: Compte désactivé avec succès
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: Impossible de désactiver une caisse avec solde non nul
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  # ── Comptes de la fédération ──
+
+  /federation/comptes:
+    get:
+      tags: [Trésorerie, Fédération]
+      summary: Lister les comptes de la fédération nationale
+      operationId: listComptesFederation
+      description: |
+        Même structure que pour une collectivité :
+        une seule caisse, N comptes bancaires, N comptes mobile money.
+      parameters:
+        - name: type
+          in: query
+          schema: { type: string, enum: [caisse, bancaire, mobile_money] }
+        - name: actif
+          in: query
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: Comptes de la fédération
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Compte' }
+
+    post:
+      tags: [Trésorerie, Fédération]
+      summary: Ajouter un compte à la fédération
+      operationId: createCompteFederation
+      description: Mêmes contraintes que pour une collectivité. 1 seule caisse autorisée.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateCompteRequest' }
+      responses:
+        '201':
+          description: Compte créé
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Compte' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409':
+          description: Une caisse existe déjà pour la fédération
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /federation/comptes/{compteId}:
+    parameters:
+      - $ref: '#/components/parameters/CompteId'
+    get:
+      tags: [Trésorerie, Fédération]
+      summary: Détail d'un compte de la fédération
+      operationId: getCompteFederation
+      responses:
+        '200':
+          description: Compte avec solde
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Compte' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+    put:
+      tags: [Trésorerie, Fédération]
+      summary: Mettre à jour un compte de la fédération
+      operationId: updateCompteFederation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateCompteRequest' }
+      responses:
+        '200':
+          description: Compte mis à jour
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Compte' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+    delete:
+      tags: [Trésorerie, Fédération]
+      summary: Désactiver un compte de la fédération
+      operationId: deleteCompteFederation
+      responses:
+        '204':
+          description: Compte désactivé
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: Caisse avec solde non nul — désactivation impossible
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+
 components:
 
   parameters:
