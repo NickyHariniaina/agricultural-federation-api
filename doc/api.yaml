@@ -13,6 +13,7 @@ tags:
   - name: Collectivites
     description: Collectivités au sein de la fédération
   - name: Membres
+  - name: Cotisations
 
 paths:
 
@@ -25,6 +26,24 @@ paths:
       responses:
         204:
           description: Successful response
+
+paths:
+
+  /cotisations:
+    post:
+      tags:
+        - Cotisations
+      summary: Créer une cotisation
+      description: Créer une cotisation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CotisationRequest'
+      responses:
+        201:
+          description: Cotisation créée
           content:
             application/json:
               schema:
@@ -67,6 +86,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Membre'
+                example:
+                  message: Cotisation créée
+        400:
+          description: Cotisation non créée
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                example:
+                  message: Cotisation non créée
+
   /health:
     get:
       summary: Health Check
@@ -143,6 +176,42 @@ components:
                   - $ref: '#/components/schemas/CompteBancaire'
                   - $ref: '#/components/schemas/MobileMoney'
 
+components:
+  schemas:
+    CotisationRequest:
+      type: object
+      properties:
+        proprietaire:
+          $ref: '#/components/schemas/Membre'
+        type_cotisation:
+          type: string
+          enum:
+            - mensuelles
+            - annuelles
+            - ponctuelle
+        montant:
+          type: number
+          format: float
+          description: Montant de la cotisation
+        date_encaissement:
+          type: string
+          format: date
+          description: Date de l'encaissement
+        mode_paiment:
+          oneOf:
+            - $ref: '#/components/schemas/CompteBancaire'
+            - $ref: '#/components/schemas/MobileMoney'
+            - $ref: '#/components/schemas/Espece'
+    Espece:
+      type: object
+      properties:
+        nom_personne:
+          type: string
+          description: Nom de la personne
+        montant:
+          type: number
+          format: float
+          description: Montant de la cotisation
     CompteBancaire:
       type: object
       properties:
