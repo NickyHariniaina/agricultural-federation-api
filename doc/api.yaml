@@ -1378,10 +1378,27 @@ components:
                 type: string
                 format: date
                 description: Date de naissance du membre
-              paiment:
+              paiment_adhesion:
                 oneOf:
                   - $ref: '#/components/schemas/CompteBancaire'
                   - $ref: '#/components/schemas/MobileMoney'
+              paiment_cotisation_annuelle:
+                oneOf:
+                  - $ref: '#/components/schemas/CompteBancaire'
+                  - $ref: '#/components/schemas/MobileMoney'
+              parrains:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/Membre'
+                    - type: object
+                      properties:
+                        numero_collectivite:
+                          type: integer
+                          description: Numéro de la collectivité du parrain
+                        relation:
+                          type: string
+                          enum: [famille, ami, collegue, autre]
 
     # ─── Erreurs ───
     Error:
