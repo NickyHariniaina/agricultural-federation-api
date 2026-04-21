@@ -12,9 +12,61 @@ servers:
 tags:
   - name: Collectivites
     description: Collectivités au sein de la fédération
+  - name: Membres
 
 paths:
 
+  /membres:
+    delete:
+      tags:
+        - Membres
+      summary: Delete a member
+      description: Deletes a member from the database
+      responses:
+        204:
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Message
+                example:
+                  message: Membre deleted
+    get:
+      tags:
+        - Membres
+      summary: Membres
+      description: Returns all members
+      responses:
+        200:
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Membre'
+    post:
+      tags:
+        - Membres
+      summary: Add a new member
+      description: Adds a new member to the database
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MembreCreationRequest'
+      responses:
+        201:
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Membre'
   /health:
     get:
       summary: Health Check
@@ -75,6 +127,69 @@ components:
             autorisation_federation:
               type: boolean
               description: Autorisation de la fédération
+    MembreCreationRequest:
+      type: array
+      items:
+        allOf:
+          - $ref: '#/components/schemas/Membre'
+          - type: object
+            properties:
+              date_naissance:
+                type: string
+                format: date
+                description: Date de naissance du membre
+              paiment:
+                oneOf:
+                  - $ref: '#/components/schemas/CompteBancaire'
+                  - $ref: '#/components/schemas/MobileMoney'
+
+    CompteBancaire:
+      type: object
+      properties:
+        titulaire:
+          type: string
+        nom_banque:
+          type: string
+          enum:
+            - BRED
+            - MCB
+            - BMOI
+            - BOA
+            - BGFI
+            - AFG
+            - ACCESS BANQUE
+            - BAOBAB
+            - SIPEM
+        numero:
+          type: object
+          properties:
+            code_banque:
+              type: integer
+            code_guichet:
+              type: integer
+            numero_compte:
+              type: integer
+            cle_rib:
+              type: integer
+        montant:
+          type: number
+          format: float
+    MobileMoney:
+      type: object
+      properties:
+        titulaire:
+          type: string
+        numero:
+          type: string
+        service_mobile_money:
+          type: string
+          enum:
+            - ORANGE MONEY
+            - MVOLA
+            - AIRTEL MONEY
+        montant:
+          type: number
+          format: float
     Collectivite:
       type: object
       properties:
