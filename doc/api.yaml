@@ -597,7 +597,9 @@ paths:
               schema: { $ref: '#/components/schemas/Activite' }
         '404': { $ref: '#/components/responses/NotFound' }
 
-
+# =============================================================================
+# COMPONENTS
+# =============================================================================
 
 components:
 
