@@ -1259,27 +1259,34 @@ paths:
   /federation/statistiques:
     get:
       tags: [Statistiques]
-      summary: Tableau de bord national de la fédération
+      summary: Rapport global de la fédération (mensuel ou annuel)
       operationId: getStatistiquesFederation
       description: |
-        Vue globale de toutes les collectivités actives.
-        Permet d'identifier les collectivités en difficulté (faible assiduité, impayés).
+        Rapport établi par le **secrétaire de la fédération**, présenté lors des assemblées générales.
+        Permet de comparer les collectivités et d'identifier les plus méritantes.
+
       parameters:
-        - name: mois
-          in: query
-          schema: { type: integer, minimum: 1, maximum: 12 }
         - name: annee
           in: query
+          required: true
           schema: { type: integer }
+          example: 2026
+        - name: mois
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 12 }
+          description: "Absent = rapport annuel ; présent = rapport mensuel"
+          example: 5
       responses:
         '200':
-          description: Tableau de bord fédération
+          description: Rapport global de la fédération
           content:
             application/json:
               schema: { $ref: '#/components/schemas/StatistiquesFederation' }
               example:
                 annee: 2026
                 mois: 5
+                type_rapport: mensuel
                 nombre_collectivites_actives: 11
                 nombre_membres_total: 423
                 collectivites:
@@ -1289,13 +1296,17 @@ paths:
                     nombre_membres_actifs: 38
                     taux_assiduite_global: 0.87
                     total_cotisations_mois: 950000.00
+                    pourcentage_membres_a_jour_cotisations: 0.92
+                    nombre_nouveaux_adherents: 3
                   - id_collectivite: 3
                     nom: "Collectivité Fianarantsoa Sud"
                     ville: "Fianarantsoa"
                     nombre_membres_actifs: 41
                     taux_assiduite_global: 0.72
                     total_cotisations_mois: 1020000.00
-
+                    pourcentage_membres_a_jour_cotisations: 0.68
+                    nombre_nouveaux_adherents: 1
+        '400': { $ref: '#/components/responses/BadRequest' }
 
 # =============================================================================
 # COMPONENTS
@@ -1707,6 +1718,10 @@ components:
       properties:
         annee: { type: integer }
         mois: { type: integer, nullable: true }
+        type_rapport:
+          type: string
+          enum: [ mensuel, annuel ]
+          description: Déduit de la présence ou non du paramètre mois
         nombre_collectivites_actives: { type: integer }
         nombre_membres_total: { type: integer }
         collectivites:
@@ -1718,10 +1733,27 @@ components:
               nom: { type: string }
               ville: { type: string }
               nombre_membres_actifs: { type: integer }
-              taux_assiduite_global: { type: number, format: float }
-              total_cotisations_mois: { type: number, format: double }
-
-
+              taux_assiduite_global:
+                type: number
+                format: float
+                minimum: 0
+                maximum: 1
+                description: Ratio présents / membres obligés sur la période
+              total_cotisations_mois:
+                type: number
+                format: double
+                description: Total des cotisations encaissées sur la période (MGA)
+              pourcentage_membres_a_jour_cotisations:
+                type: number
+                format: float
+                minimum: 0
+                maximum: 1
+                description: >
+                  Membres ayant réglé toutes leurs cotisations périodiques
+                  attendues sur la période / total membres actifs
+              nombre_nouveaux_adherents:
+                type: integer
+                description: Membres ayant rejoint cette collectivité sur la période
     CompteBancaire:
       type: object
       properties:
@@ -1888,3 +1920,4 @@ components:
           type: number
           format: float
           description: Montant de la cotisation
+
