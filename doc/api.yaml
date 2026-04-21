@@ -1,1 +1,161 @@
-# API documentation
+openapi: 3.0.0
+
+info:
+  title: AgriFed API
+  description: API for AgriFed
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Local Development
+
+tags:
+  - name: Collectivites
+    description: Collectivités au sein de la fédération
+
+paths:
+
+  /health:
+    get:
+      summary: Health Check
+      description: Returns health check status
+      responses:
+        200:
+          description: Health check status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                example:
+                  message: Hello world
+
+  /collectivites:
+    post:
+      tags:
+        - Collectivites
+      description: Create a new collectivite
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectiviteCreation'
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collectivite'
+        400:
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Error message
+    CollectiviteCreation:
+      allOf:
+        - $ref: '#/components/schemas/Collectivite'
+        - type: object
+          properties:
+            specialite_agricole:
+              type: string
+              description: Spécialité agricole
+            autorisation_federation:
+              type: boolean
+              description: Autorisation de la fédération
+    Collectivite:
+      type: object
+      properties:
+        nom:
+          type: string
+          description: Nom de la collectivité
+        numero:
+          type: string
+          description: Numéro de la collectivité
+        specialite_agricole:
+          type: string
+          description: Spécialité agricole
+        date_creation:
+          type: string
+          format: date
+          description: Date de création de la collectivité
+        ville:
+          type: string
+          description: Ville de la collectivité
+        membres:
+          type: array
+          items:
+            $ref: '#/components/schemas/Membre'
+        president:
+          $ref: '#/components/schemas/Membre'
+        president_adjoint:
+          $ref: '#/components/schemas/Membre'
+        tresorier:
+          $ref: '#/components/schemas/Membre'
+        secretaire:
+          $ref: '#/components/schemas/Membre'
+    Membre:
+      type: object
+      properties:
+        nom:
+          type: string
+          description: Nom du membre
+        prenom:
+          type: string
+          description: Prénom du membre
+        genre:
+          type: string
+          description: Genre du membre
+        adresse:
+          type: string
+          description: Adresse du membre
+        metier:
+          type: string
+          description: Métier du membre
+        telephone:
+          type: string
+          description: Téléphone du membre
+        email:
+          type: string
+          description: Email du membre
+        date_adhesion:
+          type: string
+          format: date
+          description: Date d'adhésion du membre
+        poste_specifique:
+          type: string
+          description: Poste spécifique du membre
+          enum:
+            - President
+            - President Adjoint
+            - Tresorier
+            - Secretaire
+            - Membre confirme
+            - Membre junior
+    Federation:
+      type: object
+      properties:
+        president:
+          $ref: '#/components/schemas/Membre'
+        president_adjoint:
+          $ref: '#/components/schemas/Membre'
+        tresorier:
+          $ref: '#/components/schemas/Membre'
+        secretaire:
+          $ref: '#/components/schemas/Membre'
+        collectivites:
+          type: array
+          items:
+            $ref: '#/components/schemas/Collectivite'
