@@ -287,6 +287,315 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
 
+# =============================================================================
+# E — ACTIVITÉS
+# =============================================================================
+
+  # ── Activités d'une collectivité ──
+
+  /collectivites/{collectiviteId}/activites:
+    parameters:
+      - $ref: '#/components/parameters/CollectiviteId'
+    get:
+      tags: [Activités]
+      summary: Lister les activités d'une collectivité
+      operationId: listActivitesCollectivite
+      description: |
+        Retourne les activités organisées par la collectivité.
+        Trois types existent pour une collectivité :
+        - `assemblee_generale` : mensuelle, obligatoire pour tous
+        - `formation_junior` : mensuelle, obligatoire pour les juniors uniquement
+        - `exceptionnelle` : à la demande, les cibles et l'obligation sont définies librement
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [assemblee_generale, formation_junior, exceptionnelle]
+          description: Filtrer par type d'activité
+        - name: statut
+          in: query
+          schema:
+            type: string
+            enum: [planifiée, tenue, annulée]
+        - name: date_debut
+          in: query
+          schema: { type: string, format: date }
+          description: Activités à partir de cette date
+        - name: date_fin
+          in: query
+          schema: { type: string, format: date }
+          description: Activités jusqu'à cette date
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Liste des activités de la collectivité
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Activite' }
+                  total: { type: integer }
+                  page: { type: integer }
+                  limit: { type: integer }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+    post:
+      tags: [Activités]
+      summary: Planifier une activité
+      operationId: createActiviteCollectivite
+      description: |
+        Crée une nouvelle activité pour la collectivité.
+
+        **Règles par type :**
+        - `assemblee_generale` : cibles automatiquement = tous les membres, obligatoire = true
+        - `formation_junior` : cibles automatiquement = membres juniors uniquement, obligatoire = true
+        - `exceptionnelle` : le champ `cibles` est obligatoire et défini manuellement
+
+        Le champ `recurrence_regle` permet de noter la règle de récurrence (ex: "2e dimanche du mois").
+        Il est informatif — la création des occurrences reste manuelle.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateActiviteCollectiviteRequest' }
+            examples:
+              assemblee_generale:
+                summary: Planifier une AG mensuelle
+                value:
+                  type: assemblee_generale
+                  titre: "Assemblée Générale — Mai 2026"
+                  date_activite: "2026-05-11T09:00:00"
+                  recurrence_regle: "2e dimanche du mois"
+              formation_junior:
+                summary: Formation obligatoire juniors
+                value:
+                  type: formation_junior
+                  titre: "Formation technique — Cultures maraîchères"
+                  date_activite: "2026-05-25T08:00:00"
+                  recurrence_regle: "4e samedi du mois"
+              exceptionnelle:
+                summary: Activité exceptionnelle pour un poste spécifique
+                value:
+                  type: exceptionnelle
+                  titre: "Atelier gestion financière pour trésoriers"
+                  description: "Formation sur la tenue de caisse et rapports mensuels"
+                  date_activite: "2026-06-05T14:00:00"
+                  cibles:
+                    - cible_type: poste
+                      cible_id: 3
+                      est_obligatoire: true
+      responses:
+        '201':
+          description: Activité planifiée avec succès
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Activite' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /collectivites/{collectiviteId}/activites/{activiteId}:
+    parameters:
+      - $ref: '#/components/parameters/CollectiviteId'
+      - $ref: '#/components/parameters/ActiviteId'
+    get:
+      tags: [Activités]
+      summary: Détail d'une activité
+      operationId: getActiviteCollectivite
+      description: Retourne l'activité avec ses cibles et un résumé des présences si elle est déjà tenue.
+      responses:
+        '200':
+          description: Activité complète
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActiviteDetail' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+    put:
+      tags: [Activités]
+      summary: Modifier une activité planifiée
+      operationId: updateActiviteCollectivite
+      description: |
+        Seules les activités au statut `planifiée` peuvent être modifiées.
+        Une activité `tenue` ou `annulée` est en lecture seule.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateActiviteRequest' }
+            example:
+              titre: "AG — Mai 2026 (reportée)"
+              date_activite: "2026-05-18T09:00:00"
+      responses:
+        '200':
+          description: Activité modifiée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Activite' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: Modification impossible — activité déjà tenue ou annulée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+    delete:
+      tags: [Activités]
+      summary: Annuler une activité
+      operationId: annulerActiviteCollectivite
+      description: |
+        Passe le statut de l'activité à `annulée`.
+        Ne supprime pas la ressource (conservation de l'historique).
+        Impossible d'annuler une activité déjà `tenue`.
+      responses:
+        '200':
+          description: Activité annulée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Activite' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: Activité déjà tenue, annulation impossible
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /collectivites/{collectiviteId}/activites/{activiteId}/statut:
+    parameters:
+      - $ref: '#/components/parameters/CollectiviteId'
+      - $ref: '#/components/parameters/ActiviteId'
+    patch:
+      tags: [Activités]
+      summary: Marquer une activité comme tenue
+      operationId: marquerActiviteTenue
+      description: |
+        Une fois l'activité terminée, le secrétaire la marque comme `tenue`.
+        Cela déclenche la possibilité d'enregistrer les présences (section F).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [statut]
+              properties:
+                statut:
+                  type: string
+                  enum: [tenue, annulée]
+      responses:
+        '200':
+          description: Statut mis à jour
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Activite' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ── Activités de la fédération ──
+
+  /federation/activites:
+    get:
+      tags: [Activités, Fédération]
+      summary: Lister les activités nationales de la fédération
+      operationId: listActivitesFederation
+      description: |
+        Activités planifiées par la fédération, auxquelles les collectivités sont invitées.
+        Ex : assemblée générale annuelle nationale, formations inter-collectivités.
+      parameters:
+        - name: statut
+          in: query
+          schema: { type: string, enum: [planifiée, tenue, annulée] }
+        - name: date_debut
+          in: query
+          schema: { type: string, format: date }
+        - name: date_fin
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Activités nationales
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Activite' }
+
+    post:
+      tags: [Activités, Fédération]
+      summary: Planifier une activité nationale
+      operationId: createActiviteFederation
+      description: |
+        La fédération organise un événement auquel elle invite des collectivités.
+        Les cibles peuvent être :
+        - `toutes_collectivites` : toutes les collectivités actives sont invitées
+        - `collectivites_specifiques` : une sélection de collectivités via leurs IDs
+        L'obligation de présence peut être définie collectivité par collectivité.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateActiviteFederationRequest' }
+            examples:
+              ag_annuelle:
+                summary: AG nationale annuelle obligatoire
+                value:
+                  titre: "Assemblée Générale Annuelle 2026"
+                  description: "Rapport global de l'évolution du secteur agricole"
+                  date_activite: "2026-11-15T08:00:00"
+                  invitation:
+                    cible: toutes_collectivites
+                    est_obligatoire: true
+              formation_selective:
+                summary: Formation pour 3 collectivités spécifiques
+                value:
+                  titre: "Formation export — Normes européennes"
+                  date_activite: "2026-07-20T09:00:00"
+                  invitation:
+                    cible: collectivites_specifiques
+                    ids_collectivites: [4, 7, 12]
+                    est_obligatoire: false
+      responses:
+        '201':
+          description: Activité nationale créée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Activite' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /federation/activites/{activiteId}:
+    parameters:
+      - $ref: '#/components/parameters/ActiviteId'
+    get:
+      tags: [Activités, Fédération]
+      summary: Détail d'une activité nationale
+      operationId: getActiviteFederation
+      responses:
+        '200':
+          description: Activité nationale avec ses cibles
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActiviteDetail' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+    put:
+      tags: [Activités, Fédération]
+      summary: Modifier une activité nationale
+      operationId: updateActiviteFederation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateActiviteRequest' }
+      responses:
+        '200':
+          description: Activité mise à jour
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Activite' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
 components:
 
@@ -435,7 +744,7 @@ components:
           type: boolean
           description: false = désactivation du compte
 
-    # ─── Activité (section E) ───
+    # ─── Activité  ───
     Activite:
       type: object
       properties:
