@@ -1356,6 +1356,17 @@ components:
 
   schemas:
 
+    CollectiviteCreation:
+      allOf:
+        - $ref: '#/components/schemas/Collectivite'
+        - type: object
+          properties:
+            specialite_agricole:
+              type: string
+              description: Spécialité agricole
+            autorisation_federation:
+              type: boolean
+              description: Autorisation de la fédération
     MembreCreationRequest:
       type: array
       items:
